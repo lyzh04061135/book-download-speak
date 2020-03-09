@@ -1,0 +1,12 @@
+小说下载：
+https://www.biqumo.com/34_34627/
+body > div.listmain > dl >dd
+#content
+C:\Users\liuyuzhu\Desktop\我是小说里共同的大反派.txt
+
+
+小说阅读：建议使用集成工具运行，或者生成可执行jar运行。
+代码使用jacob-1.19.jar
+32位系统将jacob-1.19-x32.dll拷贝到java\jdk1.8.0_201\bin下
+64位系统将jacob-1.19-x64.dll拷贝到java\jdk1.8.0_201\bin下
+speak可能会抛出错误，没有详细调查原因！
