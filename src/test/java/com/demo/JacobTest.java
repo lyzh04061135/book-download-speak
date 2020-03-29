@@ -6,10 +6,14 @@ import com.jacob.com.Variant;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class JacobTest {
+    public static char[] markChars={',', '.', '?', '!',  ';', ':', '、', '，', '。', '？', '！', '；', '：'};
+
     public static void main(String[] args) {
         System.out.println("start");
         if (args.length == 1) {
@@ -17,6 +21,19 @@ public class JacobTest {
             String path = args[0];
             path = path.replaceAll("\\\\", "/");
             path = path.toLowerCase();
+
+            ActiveXComponent activeXComponent = null;
+            Dispatch dispatch = null;
+
+            try {
+                activeXComponent = new ActiveXComponent("Sapi.SpVoice");
+                dispatch = activeXComponent.getObject();
+                activeXComponent.setProperty("Volume", new Variant(100));
+                activeXComponent.setProperty("Rate", new Variant(0));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             Matcher matcher = pattern.matcher(path);
             if (matcher.matches()) {
                 try (FileReader fileReader = new FileReader(args[0]);
@@ -27,11 +44,54 @@ public class JacobTest {
                         if (text == null) {
                             break;
                         }
-                        textToAudio(text);
+                        if (text.length()>100) {
+//                            int partLength=text.length()/50;
+//                            int count=0;
+//                            while (count<text.length()) {
+//                                if (count+partLength>text.length()) {
+//                                    partLength=text.length()-count;
+//                                }
+//                                String subText=text.substring(count, count+partLength);
+//                                count+=partLength;
+//                                textToAudio(activeXComponent, dispatch,subText);
+//                            }
+                            int count=text.length()/50;
+                            int position=0;
+                            Map<String, Integer>param=new HashMap<>();
+                            param.put("count", count);
+                            param.put("position", position);
+                            while (true) {
+                                String subText=getSubText(text, param);
+                                textToAudio(activeXComponent, dispatch,subText);
+                                position=param.get("position");
+                                if (position>text.length()) {
+                                    System.out.println(String.format("error: position: %d, text.length(): %d", position, text.length()));
+                                    break;
+                                }
+                                else if (position==text.length()) {
+                                    break;
+                                }
+                            }
+                        }
+                        else {
+                            System.out.println(text);
+                            textToAudio(activeXComponent, dispatch, text);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+
+            try {
+                if (dispatch != null) {
+                    dispatch.safeRelease();
+                }
+                if (activeXComponent != null) {
+                    activeXComponent.safeRelease();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         } else {
             System.out.println("请输入文件全路劲");
@@ -39,33 +99,61 @@ public class JacobTest {
         System.out.println("end");
     }
 
-    //只朗读
-    public static void textToAudio(String text) {
-        ActiveXComponent activeXComponent = null;
-        Dispatch dispatch = null;
+    public static String getSubText(String text, Map<String, Integer>param) {
+        String subString="";
+        int end=0;
+        int length=text.length();
+        int position=param.get("position");
+        int count=param.get("count");
+//        System.out.println(String.format("position: %d, count: %d, length: %d", position, count, length));
         try {
-            activeXComponent = new ActiveXComponent("Sapi.SpVoice");
-            dispatch = activeXComponent.getObject();
-            activeXComponent.setProperty("Volume", new Variant(100));
-            activeXComponent.setProperty("Rate", new Variant(-1));
-            Dispatch.call(dispatch, "Speak", new Variant(text));
-            dispatch.safeRelease();
-            dispatch = null;
-            activeXComponent.safeRelease();
-            activeXComponent = null;
+            if (position==text.length()) {
+                return subString;
+            }
+            if (position+count>text.length()) {
+                count=text.length()-position;
+                param.put("count", count);
+            }
+            end=position+count;
+
+            for(; end<text.length(); end++) {
+                if (contains(markChars, text.charAt(end))) {
+                    break;
+                }
+            }
+            param.put("position", end);
+            subString=text.substring(position, end);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println(String.format("error: %s", text));
         }
-        try {
-            if (dispatch != null) {
-                dispatch.safeRelease();
+        return subString;
+    }
+
+    private static boolean contains(char[] markChars, char c) {
+        for(int i=0; i<markChars.length; i++) {
+            if (markChars[i]==c) {
+                return true;
             }
-            if (activeXComponent != null) {
-                activeXComponent.safeRelease();
+        }
+       return false;
+    }
+
+    //只朗读
+    public static void textToAudio(ActiveXComponent activeXComponent, Dispatch dispatch, String text) {
+        int count=0;
+        while (count<3) {
+            count++;
+            try {
+                Dispatch.call(dispatch, "Speak", new Variant(text));
+                break;
+            } catch (Exception e) {
+                if (count<3) {
+                    System.out.println(String.format("error occur count: %d, text: %s", count, text));
+                    continue;
+                }
+                e.printStackTrace();
+                System.out.println(String.format("error: %s", text));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

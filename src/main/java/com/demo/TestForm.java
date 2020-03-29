@@ -16,6 +16,8 @@ public class TestForm {
     private JTextField pathTextField;
     private JTextField charsetTextField;
     private NovelDocument novelDocument;
+    public static Integer from=0;
+    public static Integer to=100000;
 
     public NovelDocument getNovelDocument() {
         return novelDocument;
@@ -59,6 +61,18 @@ public class TestForm {
     }
 
     public static void main(String[] args) {
+        for(int i=0; i<args.length; i++) {
+            int index = args[i].indexOf("from=");
+            if (index>-1) {
+                from=Integer.parseInt(args[i].substring(5));
+            }
+            else {
+                index = args[i].indexOf("to=");
+                if (index>-1) {
+                    to=Integer.parseInt(args[i].substring(3));
+                }
+            }
+        }
         JFrame frame = new JFrame("TestForm");
         frame.setSize(800, 600);
         frame.setContentPane(new TestForm().mainPanel);
